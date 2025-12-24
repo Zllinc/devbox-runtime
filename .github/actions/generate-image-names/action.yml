@@ -60,16 +60,33 @@ runs:
         # Create the image name components
         image_name="${runtime_name}-${runtime_version}"
 
+        # ==========================================
+        # TODO: 临时修复 - 将 username 转为小写（Docker 镜像名不允许大写）
+        # 原因：用户账户名 Zllinc 包含大写字母，但 Docker 镜像仓库名必须小写
+        # 后续测试完成后可以移除此逻辑，恢复下面注释的原始代码
+        # ==========================================
+        ghcr_username="${{ fromJson(inputs.ghcr_credentials).username }}"
+        ghcr_username_lower=$(echo "$ghcr_username" | tr '[:upper:]' '[:lower:]')
+
         # Generate ghcr.io image name
         if [ "${{ inputs.expt_image_naming }}" = "images" ]; then
           # Experimental naming convention
-          ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${{ fromJson(inputs.ghcr_credentials).username }}/devbox-base-expt/${image_name}:${tag}"
+          # 原始代码（已注释）:
+          # ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${{ fromJson(inputs.ghcr_credentials).username }}/devbox-base-expt/${image_name}:${tag}"
+          # 临时修复（使用小写）:
+          ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${ghcr_username_lower}/devbox-base-expt/${image_name}:${tag}"
         elif [ "${{ inputs.expt_image_naming }}" = "runtimes" ]; then
           # Experimental naming convention
-          ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${{ fromJson(inputs.ghcr_credentials).username }}/devbox-runtime-expt/${image_name}:${tag}"
+          # 原始代码（已注释）:
+          # ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${{ fromJson(inputs.ghcr_credentials).username }}/devbox-runtime-expt/${image_name}:${tag}"
+          # 临时修复（使用小写）:
+          ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${ghcr_username_lower}/devbox-runtime-expt/${image_name}:${tag}"
         else
           # Standard naming convention
-          ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${{ fromJson(inputs.ghcr_credentials).username }}/devbox/${image_name}:${tag}"
+          # 原始代码（已注释）:
+          # ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${{ fromJson(inputs.ghcr_credentials).username }}/devbox/${image_name}:${tag}"
+          # 临时修复（使用小写）:
+          ghcr_image_name="${{ fromJson(inputs.ghcr_credentials).registry }}/${ghcr_username_lower}/devbox/${image_name}:${tag}"
         fi
         # Generate Aliyun ACR image name (if credentials provided)
         aliyun_credentials='${{ inputs.aliyun_credentials }}'

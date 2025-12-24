@@ -124,25 +124,53 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # ==========================================
+      # TODO: 临时修复 - 将 repository_owner 转为小写（Docker 镜像名不允许大写）
+      # 原因：用户账户名 Zllinc 包含大写字母，但 Docker 镜像仓库名必须小写
+      # 后续测试完成后可以移除此逻辑，恢复下面注释的原始代码
+      # ==========================================
+      - name: Compute repository owner (lowercase)
+        id: repo_owner
+        run: |
+          REPO_OWNER_ORIGINAL="${{ github.repository_owner }}"
+          REPO_OWNER_LOWER=$(echo "$REPO_OWNER_ORIGINAL" | tr '[:upper:]' '[:lower:]')
+          echo "repo_owner_lower=$REPO_OWNER_LOWER" >> $GITHUB_OUTPUT
+          echo "Repository owner (original): $REPO_OWNER_ORIGINAL"
+          echo "Repository owner (lowercase): $REPO_OWNER_LOWER"
+      # ==========================================
+      # TODO: 临时修复 - 使用小写的 repository_owner（Docker 镜像名不允许大写）
+      # 原始代码（已注释）:
+      # ghcr_credentials: ${{ format('{{"registry":"{0}","username":"{1}","password":"{2}"}}', 'ghcr.io', github.repository_owner, secrets.GITHUB_TOKEN) || '{}' }}
+      # 临时修复（使用小写）:
       - name: Generate image names (standard)
         id: generate-standard
         uses: ./.github/actions/generate-image-names
         with:
           dockerfile: ${{ matrix.packages }}
           tag: ${{ needs.define-matrix.outputs.tag_l10n }}
-          ghcr_credentials: ${{ format('{{"registry":"{0}","username":"{1}","password":"{2}"}}', 'ghcr.io', github.repository_owner, secrets.GITHUB_TOKEN) || '{}' }}
+          ghcr_credentials: ${{ format('{{"registry":"{0}","username":"{1}","password":"{2}"}}', 'ghcr.io', steps.repo_owner.outputs.repo_owner_lower, secrets.GITHUB_TOKEN) || '{}' }}
           aliyun_credentials: ${{ inputs.aliyun_enabled == 'true' && format('{{"registry":"{0}","username":"{1}","password":"{2}", "namespace":"{3}"}}', secrets.ALIYUN_REGISTRY, secrets.ALIYUN_USERNAME, secrets.ALIYUN_PASSWORD, secrets.ALIYUN_NAMESPACE) || '{}' }}
           expt_image_naming: ${{ inputs.build_type }}
       - name: Build and push standard images
         uses: ./.github/actions/build-and-push
         with:
           build_args: |
-            REPO=${{ github.repository_owner }}/devbox-base-expt
+            # ==========================================
+            # TODO: 临时修复 - 使用小写的 repository_owner（Docker 镜像名不允许大写）
+            # 原始代码（已注释）:
+            # REPO=${{ github.repository_owner }}/devbox-base-expt
+            # 临时修复（使用小写）:
+            REPO=${{ steps.repo_owner.outputs.repo_owner_lower }}/devbox-base-expt
             L10N=${{ inputs.l10n }}
             L10N_NORMALIZED=${{ needs.define-matrix.outputs.l10n_normalized }}
             ARCH=${{ inputs.arch }} 
           dockerfile: ${{ matrix.packages }}
-          ghcr_credentials: ${{ format('{{"registry":"{0}","username":"{1}","password":"{2}"}}', 'ghcr.io', github.repository_owner, secrets.GITHUB_TOKEN) || '{}' }}
+          # ==========================================
+          # TODO: 临时修复 - 使用小写的 repository_owner（Docker 镜像名不允许大写）
+          # 原始代码（已注释）:
+          # ghcr_credentials: ${{ format('{{"registry":"{0}","username":"{1}","password":"{2}"}}', 'ghcr.io', github.repository_owner, secrets.GITHUB_TOKEN) || '{}' }}
+          # 临时修复（使用小写）:
+          ghcr_credentials: ${{ format('{{"registry":"{0}","username":"{1}","password":"{2}"}}', 'ghcr.io', steps.repo_owner.outputs.repo_owner_lower, secrets.GITHUB_TOKEN) || '{}' }}
           ghcr_image_name: ${{ steps.generate-standard.outputs.ghcr_image_name }}
           aliyun_credentials: ${{ inputs.aliyun_enabled == 'true' && format('{{"registry":"{0}","username":"{1}","password":"{2}", "namespace":"{3}"}}', secrets.ALIYUN_REGISTRY, secrets.ALIYUN_USERNAME, secrets.ALIYUN_PASSWORD, secrets.ALIYUN_NAMESPACE) || '{}' }}
           acr_image_name: ${{ steps.generate-standard.outputs.acr_image_name }}

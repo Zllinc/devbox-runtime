@@ -26,6 +26,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # ==========================================
+      # TODO: 临时修复 - 将 repository_owner 转为小写（Docker 镜像名不允许大写）
+      # 原因：用户账户名 Zllinc 包含大写字母，但 Docker 镜像仓库名必须小写
+      # 后续测试完成后可以移除此逻辑，恢复下面注释的原始代码
+      # ==========================================
       - name: Compute build parameters
         id: params
         run: |
@@ -54,6 +59,9 @@ jobs:
           else
             echo "add_latest=false" >> $GITHUB_OUTPUT
           fi
+          REPO_OWNER_ORIGINAL="${{ github.repository_owner }}"
+          REPO_OWNER_LOWER=$(echo "$REPO_OWNER_ORIGINAL" | tr '[:upper:]' '[:lower:]')
+          echo "repo_owner_lower=$REPO_OWNER_LOWER" >> $GITHUB_OUTPUT
       - name: Log in to GHCR (only workflow_dispatch pushes)
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: docker/login-action@v2
@@ -62,6 +70,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ==========================================
+      # TODO: 临时修复 - 使用小写的 repository_owner（Docker 镜像名不允许大写）
+      # 原因：用户账户名 Zllinc 包含大写字母，但 Docker 镜像仓库名必须小写
+      # 后续测试完成后可以移除此逻辑，恢复下面注释的原始代码
+      # 原始代码（已注释）:
+      #   tags: |
+      #     ghcr.io/${{ github.repository_owner }}/devbox-base-expt/base-tools:${{ steps.params.outputs.image_tag }}
+      #     ${{ steps.params.outputs.add_latest == 'true' && format('ghcr.io/{0}/devbox-base-expt/base-tools:latest', github.repository_owner) || '' }}
+      # 临时修复（使用小写）:
       - name: Build `base-tools` image (dispatch only pushes)
         uses: docker/build-push-action@v5
         with:
@@ -72,5 +89,5 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/${{ github.repository_owner }}/devbox-base-expt/base-tools:${{ steps.params.outputs.image_tag }}
-            ${{ steps.params.outputs.add_latest == 'true' && format('ghcr.io/{0}/devbox-base-expt/base-tools:latest', github.repository_owner) || '' }}
+            ghcr.io/${{ steps.params.outputs.repo_owner_lower }}/devbox-base-expt/base-tools:${{ steps.params.outputs.image_tag }}
+            ${{ steps.params.outputs.add_latest == 'true' && format('ghcr.io/{0}/devbox-base-expt/base-tools:latest', steps.params.outputs.repo_owner_lower) || '' }}
